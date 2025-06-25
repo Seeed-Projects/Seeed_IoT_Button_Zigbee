@@ -46,9 +46,7 @@ public:
     ZigbeeMultiButton(uint8_t endpoint_id);
     ~ZigbeeMultiButton() {}
 
-    void click1();
-
-    void click2();
+    void click(uint8_t click_count);
 
     // Set the IAS Client endpoint number (default is 1)
     void setIASClientEndpoint(uint8_t ep_number);

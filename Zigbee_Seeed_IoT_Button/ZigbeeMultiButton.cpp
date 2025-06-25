@@ -34,26 +34,36 @@ void ZigbeeMultiButton::setIASClientEndpoint(uint8_t ep_number) {
   _ias_cie_endpoint = ep_number;
 }
 
-void ZigbeeMultiButton::click1() {
-  log_v("IoT Button 1 click!");
-  uint8_t clicked_1 = 0;  // ALARM1 = 0, ALARM2 = 0
-  esp_zb_lock_acquire(portMAX_DELAY);
-  esp_zb_zcl_set_attribute_val(
-    _endpoint, ESP_ZB_ZCL_CLUSTER_ID_IAS_ZONE, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_IAS_ZONE_ZONESTATUS_ID, &clicked_1, false
-  );
-  esp_zb_lock_release();
-  _zone_status = clicked_1;
-  report();
-}
-
-void ZigbeeMultiButton::click2() {
-  log_v("IoT Button 2 click!");
-  uint8_t clicked_2 = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 | ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM2;  // ALARM1 = 1, ALARM2 = 1
-  esp_zb_lock_acquire(portMAX_DELAY);
-  esp_zb_zcl_set_attribute_val(_endpoint, ESP_ZB_ZCL_CLUSTER_ID_IAS_ZONE, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_IAS_ZONE_ZONESTATUS_ID, &clicked_2, false);
-  esp_zb_lock_release();
-  _zone_status = clicked_2;
-  report();
+void ZigbeeMultiButton::click(uint8_t click_count) {
+    log_v("IoT Button %d click!", click_count);
+    uint8_t status = 0;
+    switch (click_count) {
+        case 0:
+            status = 0x00;
+            break;
+        case 1:
+            status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1; // 0x01
+            break;
+        case 2:
+            status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM2; // 0x02
+            break;
+        case 3:
+            status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 | ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM2; // 0x03
+            break;
+        case 4:
+            status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_TAMPER;
+            break;
+        default:
+            status = 0x00;
+            break;
+    }
+    esp_zb_lock_acquire(portMAX_DELAY);
+    esp_zb_zcl_set_attribute_val(
+        _endpoint, ESP_ZB_ZCL_CLUSTER_ID_IAS_ZONE, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_IAS_ZONE_ZONESTATUS_ID, &status, false
+    );
+    esp_zb_lock_release();
+    _zone_status = status;
+    report();
 }
 
 void ZigbeeMultiButton::report() {
