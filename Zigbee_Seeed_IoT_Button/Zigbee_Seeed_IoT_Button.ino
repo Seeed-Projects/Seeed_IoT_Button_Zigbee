@@ -8,7 +8,7 @@
 #include <freertos/task.h>
 #include <freertos/queue.h>
 
-#include "ZigbeeBinary.h"
+#include "ZigbeeBinarySensor.h"
 
 /* Button Configuration */
 const uint8_t BUTTON_PIN = 9;
@@ -38,7 +38,7 @@ enum class ButtonEvent
 
 /* Zigbee Configuration */
 #define BUTTON_ENDPOINT 10
-ZigbeeBinary zbIoTButton = ZigbeeBinary(BUTTON_ENDPOINT);
+ZigbeeBinarySensor zbIoTButton = ZigbeeBinarySensor(BUTTON_ENDPOINT);
 
 /* Global Variables */
 QueueHandle_t eventQueue;

@@ -37,14 +37,14 @@ typedef struct zigbee_multi_button_cfg_s {
 } zigbee_multi_button_cfg_t;
 
 
-class ZigbeeBinary : public ZigbeeEP {
+class ZigbeeBinarySensor : public ZigbeeEP {
 public:
     /**
-     * @brief Constructor for ZigbeeBinary
+     * @brief Constructor for ZigbeeBinarySensor
      * @param endpoint_id Endpoint ID for this device
      */
-    ZigbeeBinary(uint8_t endpoint_id);
-    ~ZigbeeBinary() {}
+    ZigbeeBinarySensor(uint8_t endpoint_id);
+    ~ZigbeeBinarySensor() {}
 
     void setStatus(bool status);
 

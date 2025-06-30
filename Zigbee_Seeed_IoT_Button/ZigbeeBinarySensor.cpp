@@ -1,4 +1,4 @@
-#include "ZigbeeBinary.h"
+#include "ZigbeeBinarySensor.h"
 #if SOC_IEEE802154_SUPPORTED && CONFIG_ZB_ENABLED
 
 esp_zb_cluster_list_t *zigbee_binary_clusters_create(zigbee_multi_button_cfg_t *multi_button) {
@@ -12,7 +12,7 @@ esp_zb_cluster_list_t *zigbee_binary_clusters_create(zigbee_multi_button_cfg_t *
     return cluster_list;
 }
 
-ZigbeeBinary::ZigbeeBinary(uint8_t endpoint) : ZigbeeEP(endpoint) {
+ZigbeeBinarySensor::ZigbeeBinarySensor(uint8_t endpoint) : ZigbeeEP(endpoint) {
     _device_id = ESP_ZB_HA_IAS_ZONE_ID;
     _zone_status = 0;
     _zone_id = 0xff;
@@ -30,11 +30,11 @@ ZigbeeBinary::ZigbeeBinary(uint8_t endpoint) : ZigbeeEP(endpoint) {
     };
 }
 
-void ZigbeeBinary::setIASClientEndpoint(uint8_t ep_number) {
+void ZigbeeBinarySensor::setIASClientEndpoint(uint8_t ep_number) {
   _ias_cie_endpoint = ep_number;
 }
 
-void ZigbeeBinary::setStatus(bool status) {
+void ZigbeeBinarySensor::setStatus(bool status) {
     esp_zb_lock_acquire(portMAX_DELAY);
     esp_zb_zcl_set_attribute_val(
         _endpoint, ESP_ZB_ZCL_CLUSTER_ID_IAS_ZONE, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_IAS_ZONE_ZONESTATUS_ID, &status, false
@@ -44,7 +44,7 @@ void ZigbeeBinary::setStatus(bool status) {
     report();
 }
 
-void ZigbeeBinary::report() {
+void ZigbeeBinarySensor::report() {
   esp_zb_zcl_ias_zone_status_change_notif_cmd_t status_change_notif_cmd;
   status_change_notif_cmd.address_mode = ESP_ZB_APS_ADDR_MODE_64_ENDP_PRESENT;
   status_change_notif_cmd.zcl_basic_cmd.src_endpoint = _endpoint;
@@ -62,7 +62,7 @@ void ZigbeeBinary::report() {
   log_v("IAS Zone status changed notification sent");
 }
 
-void ZigbeeBinary::zbIASZoneEnrollResponse(const esp_zb_zcl_ias_zone_enroll_response_message_t *message) {
+void ZigbeeBinarySensor::zbIASZoneEnrollResponse(const esp_zb_zcl_ias_zone_enroll_response_message_t *message) {
   if (message->info.cluster == ESP_ZB_ZCL_CLUSTER_ID_IAS_ZONE) {
     log_v("IAS Zone Enroll Response: zone id(%d), status(%d)", message->zone_id, message->response_code);
     if (message->response_code == ESP_ZB_ZCL_IAS_ZONE_ENROLL_RESPONSE_CODE_SUCCESS) {
