@@ -8,7 +8,7 @@
 #include <freertos/task.h>
 #include <freertos/queue.h>
 
-#include "ZigbeeMultiButton.h"
+#include "ZigbeeBinary.h"
 
 /* Button Configuration */
 const uint8_t BUTTON_PIN = 9;
@@ -38,7 +38,7 @@ enum class ButtonEvent
 
 /* Zigbee Configuration */
 #define BUTTON_ENDPOINT 10
-ZigbeeMultiButton zbIoTButton = ZigbeeMultiButton(BUTTON_ENDPOINT);
+ZigbeeBinary zbIoTButton = ZigbeeBinary(BUTTON_ENDPOINT);
 
 /* Global Variables */
 QueueHandle_t eventQueue;
@@ -231,13 +231,28 @@ void mainTask(void *pvParameters)
       switch (event)
       {
       case ButtonEvent::PRESS:
-        bool buttonStatus = true;
-        Serial.println("Button Pressed");
+        if (buttonStatus == false)
+        {
+          buttonStatus = true;
+          Serial.println("Button Pressed");
+          if (Zigbee.connected())
+          {
+            zbIoTButton.setStatus(buttonStatus);
+          }
+        }
         break;
 
       case ButtonEvent::RELEASE:
-        bool buttonStatus = false;
-        Serial.println("Button Released");
+        if (buttonStatus == true)
+        {
+          buttonStatus = false;
+          Serial.println("Button Released");
+          if (Zigbee.connected())
+          {
+            zbIoTButton.setStatus(buttonStatus);
+          }
+        }
+
         break;
 
       case ButtonEvent::SINGLE_CLICK:
@@ -245,7 +260,6 @@ void mainTask(void *pvParameters)
         ledBlink();
         if (Zigbee.connected())
         {
-          zbIoTButton.click(1);
         }
         break;
 
@@ -254,12 +268,14 @@ void mainTask(void *pvParameters)
         ledBreathing();
         if (Zigbee.connected())
         {
-          zbIoTButton.click(2);
         }
         break;
 
       case ButtonEvent::TRIPLE_CLICK:
         Serial.println("Triple Click: Ignored");
+        if (Zigbee.connected())
+        {
+        }
         break;
 
       case ButtonEvent::SHORT_LONG_PRESS:
@@ -267,7 +283,6 @@ void mainTask(void *pvParameters)
         ledRainbow();
         if (Zigbee.connected())
         {
-          zbIoTButton.click(3);
         }
         break;
 

@@ -1,7 +1,7 @@
-#include "ZigbeeMultiButton.h"
+#include "ZigbeeBinary.h"
 #if SOC_IEEE802154_SUPPORTED && CONFIG_ZB_ENABLED
 
-esp_zb_cluster_list_t *zigbee_multi_button_clusters_create(zigbee_multi_button_cfg_t *multi_button) {
+esp_zb_cluster_list_t *zigbee_binary_clusters_create(zigbee_multi_button_cfg_t *multi_button) {
     esp_zb_basic_cluster_cfg_t *basic_cfg = multi_button ? &(multi_button->basic_cfg) : NULL;
     esp_zb_identify_cluster_cfg_t *identify_cfg = multi_button ? &(multi_button->identify_cfg) : NULL;
     esp_zb_ias_zone_cluster_cfg_t *ias_zone_cfg = multi_button ? &(multi_button->ias_zone_cfg) : NULL;
@@ -12,15 +12,15 @@ esp_zb_cluster_list_t *zigbee_multi_button_clusters_create(zigbee_multi_button_c
     return cluster_list;
 }
 
-ZigbeeMultiButton::ZigbeeMultiButton(uint8_t endpoint) : ZigbeeEP(endpoint) {
+ZigbeeBinary::ZigbeeBinary(uint8_t endpoint) : ZigbeeEP(endpoint) {
     _device_id = ESP_ZB_HA_IAS_ZONE_ID;
     _zone_status = 0;
     _zone_id = 0xff;
     _ias_cie_endpoint = 1;
 
     // Create custom button configuration
-    zigbee_multi_button_cfg_t button_cfg = ZIGBEE_DEFAULT_MULTI_BUTTON_CONFIG();
-    _cluster_list = zigbee_multi_button_clusters_create(&button_cfg);
+    zigbee_multi_button_cfg_t button_cfg = ZIGBEE_DEFAULT_BINARY_CONFIG();
+    _cluster_list = zigbee_binary_clusters_create(&button_cfg);
     
     _ep_config = {
         .endpoint = _endpoint,
@@ -30,33 +30,11 @@ ZigbeeMultiButton::ZigbeeMultiButton(uint8_t endpoint) : ZigbeeEP(endpoint) {
     };
 }
 
-void ZigbeeMultiButton::setIASClientEndpoint(uint8_t ep_number) {
+void ZigbeeBinary::setIASClientEndpoint(uint8_t ep_number) {
   _ias_cie_endpoint = ep_number;
 }
 
-void ZigbeeMultiButton::click(uint8_t click_count) {
-    log_v("IoT Button %d click!", click_count);
-    uint8_t status = 0;
-    switch (click_count) {
-        case 0:
-            status = 0x00;
-            break;
-        case 1:
-            status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1; // 0x01
-            break;
-        case 2:
-            status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM2; // 0x02
-            break;
-        case 3:
-            status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM1 | ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_ALARM2; // 0x03
-            break;
-        case 4:
-            status = ESP_ZB_ZCL_IAS_ZONE_ZONE_STATUS_TAMPER;
-            break;
-        default:
-            status = 0x00;
-            break;
-    }
+void ZigbeeBinary::setStatus(bool status) {
     esp_zb_lock_acquire(portMAX_DELAY);
     esp_zb_zcl_set_attribute_val(
         _endpoint, ESP_ZB_ZCL_CLUSTER_ID_IAS_ZONE, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, ESP_ZB_ZCL_ATTR_IAS_ZONE_ZONESTATUS_ID, &status, false
@@ -66,7 +44,7 @@ void ZigbeeMultiButton::click(uint8_t click_count) {
     report();
 }
 
-void ZigbeeMultiButton::report() {
+void ZigbeeBinary::report() {
   esp_zb_zcl_ias_zone_status_change_notif_cmd_t status_change_notif_cmd;
   status_change_notif_cmd.address_mode = ESP_ZB_APS_ADDR_MODE_64_ENDP_PRESENT;
   status_change_notif_cmd.zcl_basic_cmd.src_endpoint = _endpoint;
@@ -84,7 +62,7 @@ void ZigbeeMultiButton::report() {
   log_v("IAS Zone status changed notification sent");
 }
 
-void ZigbeeMultiButton::zbIASZoneEnrollResponse(const esp_zb_zcl_ias_zone_enroll_response_message_t *message) {
+void ZigbeeBinary::zbIASZoneEnrollResponse(const esp_zb_zcl_ias_zone_enroll_response_message_t *message) {
   if (message->info.cluster == ESP_ZB_ZCL_CLUSTER_ID_IAS_ZONE) {
     log_v("IAS Zone Enroll Response: zone id(%d), status(%d)", message->zone_id, message->response_code);
     if (message->response_code == ESP_ZB_ZCL_IAS_ZONE_ENROLL_RESPONSE_CODE_SUCCESS) {

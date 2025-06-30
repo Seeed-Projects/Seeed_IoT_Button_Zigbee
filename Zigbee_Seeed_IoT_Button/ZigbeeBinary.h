@@ -8,7 +8,7 @@
 #include "ha/esp_zigbee_ha_standard.h"
 
 // Default configuration for multi-button device
-#define ZIGBEE_DEFAULT_MULTI_BUTTON_CONFIG()                                                     \
+#define ZIGBEE_DEFAULT_BINARY_CONFIG()                                                     \
     {                                                                                            \
         .basic_cfg =                                                                             \
             {                                                                                    \
@@ -37,23 +37,22 @@ typedef struct zigbee_multi_button_cfg_s {
 } zigbee_multi_button_cfg_t;
 
 
-class ZigbeeMultiButton : public ZigbeeEP {
+class ZigbeeBinary : public ZigbeeEP {
 public:
     /**
-     * @brief Constructor for ZigbeeMultiButton
+     * @brief Constructor for ZigbeeBinary
      * @param endpoint_id Endpoint ID for this device
      */
-    ZigbeeMultiButton(uint8_t endpoint_id);
-    ~ZigbeeMultiButton() {}
+    ZigbeeBinary(uint8_t endpoint_id);
+    ~ZigbeeBinary() {}
 
-    void click(uint8_t click_count);
+    void setStatus(bool status);
 
     // Set the IAS Client endpoint number (default is 1)
     void setIASClientEndpoint(uint8_t ep_number);
 
-    void report();
-
 private:
+  void report();
   void zbIASZoneEnrollResponse(const esp_zb_zcl_ias_zone_enroll_response_message_t *message) override;
   uint8_t _zone_status;
   uint8_t _zone_id;
