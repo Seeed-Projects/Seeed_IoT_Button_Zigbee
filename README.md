@@ -9,6 +9,7 @@ The Seeed Studio IoT Button is a versatile IoT device that can be integrated wit
 ## Features
 
 - Multiple button actions: single click, double click, and long press
+- Configurable debounce and click timing in `Zigbee_Seeed_IoT_Button.ino`
 - Easy integration with Zigbee networks
 - Factory reset capability via long press
 
