@@ -75,45 +75,47 @@ For convenience, pre-built binary files are provided in the `build/factory_firmw
 
 ## Button Actions
 
-The IoT Button supports three different actions that are reported to your Zigbee network:
+The IoT Button supports three actions. The first two are sent over Zigbee as **IAS Zone** status on endpoint 10. Home Assistant ZHA shows that as a two-state entity (**Off** / **On**).
 
-1. **Single Click**: A quick press and release of the button
-   - Reported as a "click_1" event in Zigbee
-   - Can be used to toggle lights, activate scenes, etc.
+1. **Single Click**: A quick press and release
+   - Zigbee IAS Zone status `0` (alarms clear)
+   - Home Assistant: **Off** / **Turned off**
 
 2. **Double Click**: Two quick presses within 400ms
-   - Reported as a "click_2" event in Zigbee
-   - Can be used for different actions than single click
+   - Zigbee IAS Zone status with alarm bits set
+   - Home Assistant: **On** / **Turned on**
 
 3. **Long Press**: Press and hold for more than 1 second
-   - Triggers a factory reset of the Zigbee settings
-   - Note: This is currently hardcoded to perform a factory reset
+   - Factory-resets Zigbee settings and reboots
+   - This is a local reset, not a third Home Assistant trigger
+
+Step-by-step pairing and automation examples: [docs/home-assistant.md](../docs/home-assistant.md).
 
 ## Integration with Home Assistant
 
-When paired with Home Assistant (via ZHA or Zigbee2MQTT):
+After pairing with **ZHA** or **Zigbee2MQTT**, open the **Seeed Studio IoT_Button** device. You should see one two-state entity. Build automations from state changes:
 
-1. The button will appear as a device with multiple triggers
-2. You can create automations based on the different button actions:
-   - Single click trigger
-   - Double click trigger
+- Single click → entity becomes `off`
+- Double click → entity becomes `on`
 
-Example automation in Home Assistant:
+Example (ZHA, YAML). Replace the entity ids with the ones on your device page:
 
 ```yaml
 automation:
-  - alias: "IoT Button Single Click - Toggle Living Room Light"
+  - alias: "IoT Button single click - toggle living room light"
     trigger:
-      platform: device
-      domain: mqtt
-      device_id: [YOUR_DEVICE_ID]
-      type: action
-      subtype: click_1
+      - platform: state
+        entity_id: binary_sensor.seeed_studio_iot_button
+        to: "off"
     action:
-      service: light.toggle
-      target:
-        entity_id: light.living_room
+      - service: light.toggle
+        target:
+          entity_id: light.living_room
 ```
+
+UI path: **Settings → Automations & Scenes → Create Automation → Device → Seeed Studio IoT_Button**, then **Turned off** (single click) or **Turned on** (double click).
+
+The [Seeed wiki automation section](https://wiki.seeedstudio.com/seeed_iot_button_with_zigbee/#step-8-create-automations-in-home-assistant) describes a later firmware with virtual switches and “Single press” / “Double press” device actions. This repository’s `Zigbee_Seeed_IoT_Button.merged.bin` uses the two-state IAS Zone mapping above. Full walkthrough: [docs/home-assistant.md](../docs/home-assistant.md).
 
 ## Customization
 
@@ -127,5 +129,6 @@ You can modify the button behavior by editing the `Zigbee_Seeed_IoT_Button.ino` 
 
 - **Device Not Joining Network**: Make sure your Zigbee coordinator is in pairing mode and within range
 - **Button Not Responding**: Check the wiring of the button to GPIO9
+- **Home Assistant only lists On/Off (or Turned on/Turned off)**: That is how this firmware appears. Map single click to Off and double click to On; see [docs/home-assistant.md](../docs/home-assistant.md)
 - **Serial Output**: Connect to the serial monitor at 115200 baud to see debug information
 - **Compilation Errors**: Ensure you've correctly installed the endpoint files and updated Zigbee.h 
