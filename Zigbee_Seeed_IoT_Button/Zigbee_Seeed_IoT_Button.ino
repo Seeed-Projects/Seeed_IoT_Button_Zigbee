@@ -3,37 +3,34 @@
 #endif
 
 #include "Zigbee.h"
+#include "ButtonInput.h"
 
 /* Button Configuration */
 #define BUTTON_PIN 9
-#define DOUBLE_CLICK_TIME 400    // Maximum time between clicks for double click (ms)
-#define LONG_PRESS_TIME 1000     // Minimum time for long press (ms)
-#define DEBOUNCE_TIME 50         // Debounce time (ms)
+
+/*
+ * Timing knobs (milliseconds). Change these values, rebuild, and flash
+ * to match how you press the button.
+ * 时间参数（毫秒）。按自己的手感改这些值，重新编译烧录即可。
+ *
+ * DEBOUNCE_TIME:         pin must stay unchanged this long before an edge counts
+ * MIN_PRESS_TIME:        shortest stable press counted as a click
+ * DOUBLE_CLICK_TIME:     max gap from first release to second press
+ * LONG_PRESS_TIME:       hold duration that starts a long-press / factory reset
+ * BUTTON_POLL_INTERVAL:  how often loop() samples the pin
+ */
+#define DEBOUNCE_TIME 20
+#define MIN_PRESS_TIME 30
+#define DOUBLE_CLICK_TIME 600
+#define LONG_PRESS_TIME 1000
+#define BUTTON_POLL_INTERVAL 10
 
 /* Zigbee Configuration */
 #define BUTTON_ENDPOINT_NUMBER 10
 
-/* Button States */
-typedef enum {
-  BUTTON_IDLE,
-  BUTTON_PRESSED,
-  BUTTON_RELEASED,
-  BUTTON_DOUBLE_CLICK_WAIT,
-} ButtonState;
-
-/* Button Events */
-typedef enum {
-  BUTTON_EVENT_SINGLE_CLICK = 1,
-  BUTTON_EVENT_DOUBLE_CLICK = 2,
-  BUTTON_EVENT_LONG_PRESS = 3,
-} ButtonEvent;
-
 /* Global Variables */
 ZigbeeMultiButton zbIoTButton = ZigbeeMultiButton(BUTTON_ENDPOINT_NUMBER);
-ButtonState buttonState = BUTTON_IDLE;
-unsigned long pressStartTime = 0;
-unsigned long lastReleaseTime = 0;
-bool longPressReported = false;
+ButtonInput buttonInput({DEBOUNCE_TIME, MIN_PRESS_TIME, DOUBLE_CLICK_TIME, LONG_PRESS_TIME});
 
 /********************* Button Functions **************************/
 void handleButtonEvent(ButtonEvent event) {
@@ -53,64 +50,7 @@ void handleButtonEvent(ButtonEvent event) {
       delay(1000);
       Zigbee.factoryReset();
       break;
-  }
-}
-
-void processButton() {
-  static unsigned long lastDebounceTime = 0;
-  bool buttonPressed = (digitalRead(BUTTON_PIN) == LOW);
-  unsigned long currentTime = millis();
-
-  // Debounce check
-  if (currentTime - lastDebounceTime < DEBOUNCE_TIME) {
-    return;
-  }
-
-  switch (buttonState) {
-    case BUTTON_IDLE:
-      if (buttonPressed) {
-        pressStartTime = currentTime;
-        buttonState = BUTTON_PRESSED;
-        longPressReported = false;
-      }
-      break;
-
-    case BUTTON_PRESSED:
-      if (!buttonPressed) {
-        // Button released
-        buttonState = BUTTON_RELEASED;
-        lastReleaseTime = currentTime;
-      } else if (!longPressReported && (currentTime - pressStartTime >= LONG_PRESS_TIME)) {
-        // Long press detected
-        handleButtonEvent(BUTTON_EVENT_LONG_PRESS);
-        longPressReported = true;
-      }
-      break;
-
-    case BUTTON_RELEASED:
-      if (currentTime - lastReleaseTime < DOUBLE_CLICK_TIME) {
-        if (buttonPressed) {
-          // Second press within double click time
-          handleButtonEvent(BUTTON_EVENT_DOUBLE_CLICK);
-          buttonState = BUTTON_IDLE;
-          lastDebounceTime = currentTime;
-        }
-      } else {
-        // Single click if no long press was reported
-        if (!longPressReported) {
-          handleButtonEvent(BUTTON_EVENT_SINGLE_CLICK);
-        }
-        buttonState = BUTTON_IDLE;
-      }
-      break;
-
-    case BUTTON_DOUBLE_CLICK_WAIT:
-      if (currentTime - lastReleaseTime >= DOUBLE_CLICK_TIME) {
-        buttonState = BUTTON_IDLE;
-        if (!longPressReported) {
-          handleButtonEvent(BUTTON_EVENT_SINGLE_CLICK);
-        }
-      }
+    case BUTTON_EVENT_NONE:
       break;
   }
 }
@@ -120,6 +60,16 @@ void setup() {
   Serial.begin(115200);
   
   Serial.println("Zigbee IoT Button Starting...");
+  Serial.print("Button timing (ms): debounce=");
+  Serial.print(DEBOUNCE_TIME);
+  Serial.print(" min_press=");
+  Serial.print(MIN_PRESS_TIME);
+  Serial.print(" double_click=");
+  Serial.print(DOUBLE_CLICK_TIME);
+  Serial.print(" long_press=");
+  Serial.print(LONG_PRESS_TIME);
+  Serial.print(" poll=");
+  Serial.println(BUTTON_POLL_INTERVAL);
 
   // Initialize button pin
   pinMode(BUTTON_PIN, INPUT_PULLUP);
@@ -149,8 +99,11 @@ void setup() {
 
 /********************* Arduino Loop **************************/
 void loop() {
-  // Process button state
-  processButton();
+  bool pressed = (digitalRead(BUTTON_PIN) == LOW);
+  ButtonEvent event = buttonInput.update(pressed, millis());
+  if (event != BUTTON_EVENT_NONE) {
+    handleButtonEvent(event);
+  }
 
-  delay(100);
-} 
+  delay(BUTTON_POLL_INTERVAL);
+}

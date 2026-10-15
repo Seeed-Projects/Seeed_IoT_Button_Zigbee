@@ -81,7 +81,7 @@ The IoT Button supports three different actions that are reported to your Zigbee
    - Reported as a "click_1" event in Zigbee
    - Can be used to toggle lights, activate scenes, etc.
 
-2. **Double Click**: Two quick presses within 400ms
+2. **Double Click**: Two presses with at most 600ms between the first release and the second press (default)
    - Reported as a "click_2" event in Zigbee
    - Can be used for different actions than single click
 
@@ -117,11 +117,33 @@ automation:
 
 ## Customization
 
-You can modify the button behavior by editing the `Zigbee_Seeed_IoT_Button.ino` file:
+Button timing lives at the top of `Zigbee_Seeed_IoT_Button.ino`. Change a value, rebuild, and flash:
 
-- Change timing parameters for button actions
+| Define | Default | Meaning |
+| --- | --- | --- |
+| `DEBOUNCE_TIME` | 20 ms | The pin must stay at the new level this long before a press or release is accepted |
+| `MIN_PRESS_TIME` | 30 ms | Shortest stable press that counts as a click |
+| `DOUBLE_CLICK_TIME` | 600 ms | Maximum gap from the first release to the second press |
+| `LONG_PRESS_TIME` | 1000 ms | Hold duration that starts a long press / factory reset |
+| `BUTTON_POLL_INTERVAL` | 10 ms | How often `loop()` reads the pin |
+
+A single click is reported after `DOUBLE_CLICK_TIME` with no second press, so a larger window gives more time for a second tap and a slightly later single-click report.
+
+You can also:
+
 - Modify the long press behavior (currently set to factory reset)
-- Add additional button patterns
+- Add additional button patterns in `handleButtonEvent`
+
+### Host tests for timing
+
+The gesture detector in `ButtonInput.cpp` can be exercised on a desktop without hardware:
+
+```
+g++ -std=c++11 -I Zigbee_Seeed_IoT_Button test/test_button_input.cpp Zigbee_Seeed_IoT_Button/ButtonInput.cpp -o /tmp/test_button_input
+/tmp/test_button_input
+```
+
+A passing run prints `passed` counts and exits 0.
 
 ## Troubleshooting
 
